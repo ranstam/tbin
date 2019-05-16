@@ -109,7 +109,6 @@ then
     echo " -lsm                                       // list tasks due tomorrow"
     echo " -lsw                                       // list tasks due this week"
     echo " -lse                                       // list tasks due this weekend"
-    echo " -lsn                                       // list tasks with week numbers"
     echo " -lsd                                       // list tasks due next 30 days"
     echo " -lsf [end date]                            // list all due tasks"
     echo " -lsp project                               // list due tasks in project"
@@ -136,21 +135,6 @@ then
 #################
 # Task listings #
 #################
-
-# Tasks with week numbers
-elif [ $1 == "-lsn" ]
-then
-    echo
-    echo "WEEKS"
-    echo
-    printf "%5s %3s %5s %-10s %-20s\n" "id" "week" "day" "due" "task" 
-    printf "%5s %3s %5s %-10s %-20s\n" "--" "----" "---" "---" "----"
-    sqlite3 $db 'SELECT id,(strftime("%j", date(due,"-3 days","weekday 4"))-1)/7+1,substr("SunMonTueWedThuFriSat",1+3*strftime("%w",due),3),due,task
-                 FROM tasks
-		 WHERE done=0
-		 ORDER BY due;' |
-    awk -F "|" '{printf "%5i %3s %5s %-10s %-20s\n",$1,$2,$3,$4,$5}'
-    echo 
 
 # Delete task
 elif [ $1 == "-del" ] && [ -n "$2" ]    
