@@ -42,6 +42,7 @@ fi
 d=$(date +"%Y-%m-%d") 
 y=$(date --date='yesterday' +"%Y-%m-%d")
 m=$(date --date='tomorrow' +"%Y-%m-%d")
+d14=$(date --date='next fortnight' +"%Y-%m-%d")
 we3=$(date --date='next month' +"%Y-%m-%d")
 
 # Mondays
@@ -98,10 +99,10 @@ fi
 # Show help #
 #############
 
-if [ $1 == "--help" ]  || [ $1 == "-h" ]  
+if [ $1 == "--help" ] || [ $1 == "-h" ]  
 then
     echo
-    echo "Usage: todo -cmd par(s) [if optional]"
+    echo "Usage: todo par(s) [if optional]"
     echo
     echo "where par(s) are:"
     echo
@@ -127,7 +128,7 @@ then
     echo " -cmp id                                    // register completed task"
     echo " -del id                                    // delete task"
     echo " -fnd criterion                             // find task(s)"
-    echo " -rem id time                               // remind about task"
+    echo " -rem id time                               // remind task (at command)"
     echo " -prj                                       // project summary"
     echo " -ctx                                       // context summary"
     echo
@@ -440,32 +441,45 @@ then
     awk -F "|" '{printf "%2s %-8s %-20s\n"," ",$1,$2}'
     echo
 
-# Structured, first one context 
+# Structured 30 days, first one context 
 elif [ $1 == "-lsr" ]
 then
     echo
-    echo "ALL DUE '$2' TASKS"
+    echo "ALL '$2' TASKS DUE THE NEXT 14 DAYS"
     echo 
     printf "%5s %5s %3s %-10s %-20s\n" "id" "week" "day" "due" "task" 
     printf "%5s %5s %3s %-10s %-20s\n" "--" "----" "---" "---" "----" 
     sqlite3 $db 'SELECT id,(strftime("%j", date(due,"-3 days","weekday 4"))-1)/7+1,substr("SunMonTueWedThuFriSat",1+3*strftime("%w",due),3),due,task
                  FROM tasks 
-   	         WHERE done=0 AND context="'$2'"  
+   	         WHERE done=0 AND context="'$2'" AND due <="'$d14'" 
 		 ORDER BY due;' |
     awk -F "|" '{printf "%5i %5s %3s %-10s %-20s\n",$1,$2,$3,$4,$5}'
 
-# then all other contexts
+# then all other contexts, 30 days
     echo
-    echo "ALL DUE TASKS BUT '$2'"
+    echo "ALL TASKS BUT '$2' DUE THE NEXT 14 DAYS"
     echo 
     printf "%5s %5s %3s %-10s %-20s\n" "id" "week" "day" "due" "task" 
     printf "%5s %5s %3s %-10s %-20s\n" "--" "----" "---" "---" "----" 
     sqlite3 $db 'SELECT id,(strftime("%j", date(due,"-3 days","weekday 4"))-1)/7+1,substr("SunMonTueWedThuFriSat",1+3*strftime("%w",due),3),due,task
                  FROM tasks 
-   	         WHERE done=0 AND context!="'$2'"  
+   	         WHERE done=0 AND context!="'$2'"  AND due <="'$d14'" 
+		 ORDER BY due;' |
+    awk -F "|" '{printf "%5i %5s %3s %-10s %-20s\n",$1,$2,$3,$4,$5}'
+
+# then all other tasks
+    echo
+    echo "ALL LATER DUE TASKS"
+    echo 
+    printf "%5s %5s %3s %-10s %-20s\n" "id" "week" "day" "due" "task" 
+    printf "%5s %5s %3s %-10s %-20s\n" "--" "----" "---" "---" "----" 
+    sqlite3 $db 'SELECT id,(strftime("%j", date(due,"-3 days","weekday 4"))-1)/7+1,substr("SunMonTueWedThuFriSat",1+3*strftime("%w",due),3),due,task
+                 FROM tasks 
+   	         WHERE done=0 AND due > "'$d14'" 
 		 ORDER BY due;' |
     awk -F "|" '{printf "%5i %5s %3s %-10s %-20s\n",$1,$2,$3,$4,$5}'
     echo 
+    echo
 
 ############
 # Finished #
