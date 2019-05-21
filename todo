@@ -212,7 +212,7 @@ then
                  FROM tasks 
 		 WHERE done=0 AND due<="'$e'" 
 		 ORDER BY due;' |
-    awk -F "|" '{printf "%5i %3s %-10s %-20s\n",$1,$2,$3,$4"("$5")"}'
+    awk -F "|" '{printf "%5i %3s %-10s %-20s\n",$1,$2,$3,$4" ("$5")"}'
     echo 
 
 # List tasks for next 30 days
@@ -227,7 +227,7 @@ then
                  FROM tasks 
 		 WHERE done=0 AND due<="'$we3'" 
 		 ORDER BY due;' |
-    awk -F "|" '{printf "%5i %5s %3s %-10s %-20s\n",$1,$2,$3,$4,$5"("$6")"}'
+    awk -F "|" '{printf "%5i %5s %3s %-10s %-20s\n",$1,$2,$3,$4,$5" ("$6")"}'
     echo 
 
 # List tasks for this weekend
@@ -347,7 +347,7 @@ then
                  FROM tasks 
                  WHERE done=1 
 	         ORDER BY due;' |
-    awk -F "|" '{printf "%5i %3s %-10s %-20s\n",$1,$2,$3,$4" "$5}'
+    awk -F "|" '{printf "%5i %3s %-10s %-20s\n",$1,$2,$3,$4" ("$5")"}'
     echo
 
 # List archived tasks in project
@@ -449,11 +449,11 @@ then
     echo 
     printf "%5s %5s %3s %-10s %-20s\n" "id" "week" "day" "due" "task" 
     printf "%5s %5s %3s %-10s %-20s\n" "--" "----" "---" "---" "----" 
-    sqlite3 $db 'SELECT id,(strftime("%j", date(due,"-3 days","weekday 4"))-1)/7+1,substr("SunMonTueWedThuFriSat",1+3*strftime("%w",due),3),due,task
+    sqlite3 $db 'SELECT id,(strftime("%j", date(due,"-3 days","weekday 4"))-1)/7+1,substr("SunMonTueWedThuFriSat",1+3*strftime("%w",due),3),due,task,name
                  FROM tasks 
    	         WHERE done=0 AND context="'$2'" AND due <="'$d14'" 
 		 ORDER BY due;' |
-    awk -F "|" '{printf "%5i %5s %3s %-10s %-20s\n",$1,$2,$3,$4,$5}'
+    awk -F "|" '{printf "%5i %5s %3s %-10s %-20s\n",$1,$2,$3,$4,$5" ("$6")"}'
 
 # then all other contexts, 30 days
     echo
@@ -461,11 +461,11 @@ then
     echo 
     printf "%5s %5s %3s %-10s %-20s\n" "id" "week" "day" "due" "task" 
     printf "%5s %5s %3s %-10s %-20s\n" "--" "----" "---" "---" "----" 
-    sqlite3 $db 'SELECT id,(strftime("%j", date(due,"-3 days","weekday 4"))-1)/7+1,substr("SunMonTueWedThuFriSat",1+3*strftime("%w",due),3),due,task
+    sqlite3 $db 'SELECT id,(strftime("%j", date(due,"-3 days","weekday 4"))-1)/7+1,substr("SunMonTueWedThuFriSat",1+3*strftime("%w",due),3),due,task,name
                  FROM tasks 
    	         WHERE done=0 AND context!="'$2'"  AND due <="'$d14'" 
 		 ORDER BY due;' |
-    awk -F "|" '{printf "%5i %5s %3s %-10s %-20s\n",$1,$2,$3,$4,$5}'
+    awk -F "|" '{printf "%5i %5s %3s %-10s %-20s\n",$1,$2,$3,$4,$5" ("$6")"}'
 
 # then all other tasks
     echo
@@ -473,11 +473,11 @@ then
     echo 
     printf "%5s %5s %3s %-10s %-20s\n" "id" "week" "day" "due" "task" 
     printf "%5s %5s %3s %-10s %-20s\n" "--" "----" "---" "---" "----" 
-    sqlite3 $db 'SELECT id,(strftime("%j", date(due,"-3 days","weekday 4"))-1)/7+1,substr("SunMonTueWedThuFriSat",1+3*strftime("%w",due),3),due,task
+    sqlite3 $db 'SELECT id,(strftime("%j", date(due,"-3 days","weekday 4"))-1)/7+1,substr("SunMonTueWedThuFriSat",1+3*strftime("%w",due),3),due,task,name
                  FROM tasks 
    	         WHERE done=0 AND due > "'$d14'" 
 		 ORDER BY due;' |
-    awk -F "|" '{printf "%5i %5s %3s %-10s %-20s\n",$1,$2,$3,$4,$5}'
+    awk -F "|" '{printf "%5i %5s %3s %-10s %-20s\n",$1,$2,$3,$4,$5" ("$6")"}'
     echo 
     echo
 
