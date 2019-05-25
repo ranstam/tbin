@@ -21,17 +21,20 @@ par="REV"                                                     #
 #####################################################
 
 if [ ! -e "$db" ]; then
-    sqlite3 $db 'CREATE TABLE tasks (                                  
-                     id       INTEGER      PRIMARY KEY AUTOINCREMENT 
-                                           NOT NULL,                   
-                     task     VARCHAR (40) NOT NULL,                   
-                     due      DATE         NOT NULL,                   
-                     project  VARCHAR (20) NOT NULL,                   
-                     context  VARCHAR (20) NOT NULL,                   
-                     done     INTEGER      DEFAULT (0)                 
-                                           NOT NULL,                   
-                     enclosed BLOB,                                    
-                     name     VARCHAR (20));'
+    sqlite3 $db 'CREATE TABLE tasks (
+                    id       INTEGER      PRIMARY KEY AUTOINCREMENT
+                                          NOT NULL,
+                    task     VARCHAR (40) NOT NULL,
+                    due      DATE         NOT NULL,
+                    project  VARCHAR (20) NOT NULL,
+                    context  VARCHAR (20) NOT NULL,
+                    done     INTEGER      DEFAULT (0) 
+                                          NOT NULL,
+                    enclosed BLOB,
+                    name     VARCHAR (20),
+                    regdate  DATE,
+                    compdate DATE
+                 );'
 fi 
 
 ##########################################
@@ -332,7 +335,7 @@ then
 elif [ $1 == "-cmp" ] && [ -n "$2" ]
 then
     sqlite3 $db 'UPDATE tasks 
-                 SET done=1 
+                 SET done=1, compdate="'$d'"
 		 WHERE id='$2';'
 
 # List archived tasks
@@ -407,8 +410,8 @@ then
     then
         name=$(basename $enclosed)
     fi
-    sqlite3 $db 'INSERT INTO tasks (task,due,project,context,done,enclosed,name) 
-                 VALUES ("'$task'","'$due'","'$project'","'$context'",0,readfile("'$enclosed'"),"'$name'");'
+    sqlite3 $db 'INSERT INTO tasks (task,due,project,context,done,enclosed,name,regdate) 
+                 VALUES ("'$task'","'$due'","'$project'","'$context'",0,readfile("'$enclosed'"),"'$name'","'$d'");'
     echo
 
 # List projects
