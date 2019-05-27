@@ -6,7 +6,7 @@
 # Database (will be created if it doesn't exist)              #
 db="/home/ranstam/Sync/todo/todo.db"                          #
 # command and parameters for the default output (see --help)  #
-cmd="-lsr"                                                    #
+cmd="-lscc"                                                   #
 par="REV"                                                     #
 ###############################################################
 
@@ -14,7 +14,7 @@ par="REV"                                                     #
 # - bash
 # - awk
 # - sqlite3
-# - Pushover account (for reminders)
+# - Pushover account (for push reminders)
 
 #####################################################
 # If the database doesn't exist, it will be created #       
@@ -37,57 +37,57 @@ if [ ! -e "$db" ]; then
                  );'
 fi 
 
-##########################################
-# Definition of specific time references #
-##########################################
+#############
+# Functions #
+#############
 
-# Weekdays and weekend days
-d=$(date +"%Y-%m-%d") 
-y=$(date --date='yesterday' +"%Y-%m-%d")
-m=$(date --date='tomorrow' +"%Y-%m-%d")
-d14=$(date --date='next fortnight' +"%Y-%m-%d")
-we3=$(date --date='next month' +"%Y-%m-%d")
+all_tasks () {
+    echo
+    printf "%5s %5s %3s %-10s %-20s\n" "id" "week" "day" "due" "task" 
+    printf "%5s %5s %3s %-10s %-20s\n" "--" "----" "---" "---" "----" 
+    sqlite3 $db 'SELECT id,(strftime("%j", date(due,"-3 days","weekday 4"))-1)/7+1,substr("SunMonTueWedThuFriSat",1+3*strftime("%w",due),3),due,task,name
+                 FROM tasks 
+   	         WHERE done="'$done'" AND due>="'$startdate'"  AND due <="'$enddate'" 
+		 ORDER BY due;' |
+    awk -F "|" '{printf "%5i %5s %3s %-10s %-20s\n",$1,$2,$3,$4,$5" ("$6")"}'
+    echo
+}
 
-# Mondays
-if [ $(date +%u) -eq 1 ]
-then
-    we1=$(date --date='next saturday' +%Y-%m-%d)
-    we2=$(date --date='next sunday' +%Y-%m-%d)
-    p=$d
-    e=$(date --date='next friday' +"%Y-%m-%d")
+project_tasks () {
+    echo
+    printf "%5s %5s %3s %-10s %-20s\n" "id" "week" "day" "due" "task" 
+    printf "%5s %5s %3s %-10s %-20s\n" "--" "----" "---" "---" "----" 
+    sqlite3 $db 'SELECT id,(strftime("%j", date(due,"-3 days","weekday 4"))-1)/7+1,substr("SunMonTueWedThuFriSat",1+3*strftime("%w",due),3),due,task,name
+                 FROM tasks 
+   	         WHERE done="'$done'" AND project="'$project'" AND due>="'$startdate'"  AND due <="'$enddate'" 
+		 ORDER BY due;' |
+    awk -F "|" '{printf "%5i %5s %3s %-10s %-20s\n",$1,$2,$3,$4,$5" ("$6")"}'
+    echo
+}
 
-# Tuesdays - Thursdays
-elif [ $(date +%u) -ge 2 ] && [ $(date +%u) -le 4 ]
-then
-    we1=$(date --date='next saturday' +%Y-%m-%d)
-    we2=$(date --date='next sunday' +%Y-%m-%d)
-    p=$(date --date='last monday' +%Y-%m-%d)
-    e=$(date --date='next friday' +"%Y-%m-%d")
+context_tasks () {
+    echo
+    printf "%5s %5s %3s %-10s %-20s\n" "id" "week" "day" "due" "task" 
+    printf "%5s %5s %3s %-10s %-20s\n" "--" "----" "---" "---" "----" 
+    sqlite3 $db 'SELECT id,(strftime("%j", date(due,"-3 days","weekday 4"))-1)/7+1,substr("SunMonTueWedThuFriSat",1+3*strftime("%w",due),3),due,task,name
+                 FROM tasks 
+   	         WHERE done="'$done'" AND context="'$context'" AND due>="'$startdate'"  AND due <="'$enddate'" 
+		 ORDER BY due;' |
+    awk -F "|" '{printf "%5i %5s %3s %-10s %-20s\n",$1,$2,$3,$4,$5" ("$6")"}'
+    echo
+}
 
-# Fridays
-elif [ $(date +%u) -eq 5 ]
-then
-    we1=$(date --date='next saturday' +%Y-%m-%d)
-    we2=$(date --date='next sunday' +%Y-%m-%d)
-    p=$(date --date='last monday' +%Y-%m-%d)
-    e=$d
-
-# Saturdays
-elif [ $(date +%u) -eq 6 ]
-then
-    we1=$(date +%Y-%m-%d)
-    we2=$(date --date='tomorrow' +%Y-%m-%d)
-    p=$(date --date='next monday' +%Y-%m-%d)
-    e=$(date --date='next friday' +"%Y-%m-%d")
-
-# Sundays
-elif [ $(date +%u) -eq 7 ]
-then
-    we1=$(date --date='yesterday' +%Y-%m-%d)
-    we2=$(date +%Y-%m-%d)
-    p=$(date --date='next monday' +%Y-%m-%d)
-    e=$(date --date='next friday' +"%Y-%m-%d")
-fi
+found_tasks () {
+    echo
+    printf "%5s %5s %5s %3s %-10s %-20s\n" "id" "done" "week" "day" "due" "task" 
+    printf "%5s %5s %5s %3s %-10s %-20s\n" "--" "----" "----" "---" "---" "----" 
+    sqlite3 $db 'SELECT id,done,(strftime("%j", date(due,"-3 days","weekday 4"))-1)/7+1,substr("SunMonTueWedThuFriSat",1+3*strftime("%w",due),3),due,task,name
+                 FROM tasks
+          	 WHERE task LIKE "'%$find%'"
+		 ORDER BY due;' |
+    awk -F "|" '{printf "%5s %5i %5s %3s %-10s %-20s\n",$1,$2,$3,$4,$5,$6" ("$7")"}'
+    echo
+}
 
 ########################
 # Specify the defaults #       
@@ -95,7 +95,7 @@ fi
 
 if [ -z "$1" ]
 then
-set -- $cmd $par
+    set -- $cmd $par
 fi
 
 #############
@@ -109,36 +109,63 @@ then
     echo
     echo "where par(s) are:"
     echo
-    echo " -lst                                       // list tasks due today"
-    echo " -lsm                                       // list tasks due tomorrow"
-    echo " -lsw                                       // list tasks due this week"
-    echo " -lse                                       // list tasks due this weekend"
-    echo " -lsd                                       // list tasks due next 30 days"
-    echo " -lsf [end date]                            // list all due tasks"
-    echo " -lsp project                               // list due tasks in project"
-    echo " -lsc context                               // list due tasks in context"
-    echo " -lsr context                               // structured listing of due tasks"
+    echo " -new [task due project context filename]"  
+    echo "                                register new task"
+    echo " -mod id item value             modify task" 
+    echo " -enc id filename               download enclosed file"
+    echo " -cmp id                        register completed task"
+    echo " -del id                        delete task"
+    echo " -fnd criterion                 find task(s)"
+    echo " -rem id time                   remind task (at command)"
     echo
-    echo " -lsq                                       // list queued tasks"
-    echo 
-    echo " -lsa                                       // list all archived tasks"
-    echo " -lsap project                              // list archived tasks in project"
-    echo " -lsac context                              // list archived tasks in context"
+    echo " -lsq                           list all queued tasks"
+    echo " -lsd [date1] [date2]           list due tasks between date 1 and 2"
+    echo " -lsp project [date1] [date2]   list due tasks in project between date 1 and 2"
+    echo " -lsc context [date1] [date2]   list due tasks in context between date 1 and 2"
     echo
-    echo " -new [task due project context filename]   // register new task"
-    echo " -mod id item value                         // modify task" 
-    echo " -enc id filename                           // download enclosed file"
-    echo " -cmp id                                    // register completed task"
-    echo " -del id                                    // delete task"
-    echo " -fnd criterion                             // find task(s)"
-    echo " -rem id time                               // remind task (at command)"
-    echo " -prj                                       // project summary"
-    echo " -ctx                                       // context summary"
+    echo " -prj                           project summary"
+    echo " -ctx                           context summary"
+    echo " -lscc context                  list the week's tasks in and out of context"
+    echo
+    echo " -lsad [date1] [date2]          list done tasks between date 1 and 2"
+    echo " -lsap project [date1] [date2]  list done tasks in project between date 1 and 2"
+    echo " -lsac context [date1] [date2]  list done tasks in context between date 1 and 2"
     echo
 
-#################
-# Task listings #
-#################
+####################################
+# Task generation and modification #
+####################################
+
+# Register new task
+elif [ $1 == "-new" ]
+then
+    if [ -z "$5" ]
+    then
+        echo
+        echo -n "Task: "
+        read task
+        echo -n "Due date: "
+        read due
+        echo -n "Project: "
+        read project
+        echo -n "Context: "
+        read context
+        echo -n "Enclose file: "
+        read enclosed
+    else
+        task=$2
+	due=$3
+	project=$4
+	context=$5
+	enclosed=$6
+    fi
+    if [ -n "$6" ] || [ -n "$enclosed" ]
+    then
+        name=$(basename $enclosed)
+    fi
+    sqlite3 $db 'INSERT INTO tasks (task,due,project,context,done,enclosed,name,regdate) 
+                 VALUES ("'$task'","'$due'","'$project'","'$context'",0,readfile("'$enclosed'"),"'$name'","'$d'");'
+    echo
 
 # Delete task
 elif [ $1 == "-del" ] && [ -n "$2" ]    
@@ -176,17 +203,22 @@ then
 # Find tasks
 elif [ $1 == "-fnd" ]    
 then
+    find=$2
     echo
-    echo "TASKS MATCHING '"$2"' ("$d")"
+    echo "TASKS MATCHING '"$2"'" 
     echo
-    printf "%5s %3s %-10s %-20s %12s %12s %12s %3s\n" "id" "day" "due" "task" "project" "context" "enclosed" "done" 
-    printf "%5s %3s %-10s %-20s %12s %12s %12s %3s\n" "--" "---" "---" "----" "-------" "-------" "--------" "----"
-    sqlite3 $db 'SELECT id,substr("SunMonTueWedThuFriSat",1+3*strftime("%w",due),3),due,task,project,context,name,done 
-                 FROM tasks 
-		 WHERE task LIKE "'%$2%'" OR project LIKE "'%$2%'" OR context LIKE "'%$2%'" OR name LIKE "'%$2%'" 
-		 ORDER BY due;' |
-    awk -F "|" '{printf "%5i %3s %-10s %-20s %12s %12s %12s %3s\n",$1,$2,$3,$4,$5,$6,$7,$8}'
-    echo 
+    found_tasks $find
+
+# Register task completed
+elif [ $1 == "-cmp" ] && [ -n "$2" ]
+then
+    sqlite3 $db 'UPDATE tasks 
+                 SET done=1, compdate="'$d'"
+		 WHERE id='$2';'
+
+#################
+# Task listings #
+#################
 
 # List queued tasks
 elif [ $1 == "-lsq" ]    
@@ -203,216 +235,133 @@ then
     awk -F "|" '{printf "%5i %-20s %-7s %-7s\n",$1,$2,$3,$4}'
     echo 
 
-# List tasks for this week
-elif [ $1 == "-lsw" ]    
+# List due tasks between dates
+elif [ $1 == "-lsd" ] 
 then
-    echo
-    echo "TODO THIS WEEK ("$p" - "$e")"
-    echo
-    printf "%5s %3s %-10s %-20s\n" "id" "day" "due" "task" 
-    printf "%5s %3s %-10s %-20s\n" "--" "---" "---" "----" 
-    sqlite3 $db 'SELECT id,substr("SunMonTueWedThuFriSat",1+3*strftime("%w",due),3),due,task,name 
-                 FROM tasks 
-		 WHERE done=0 AND due<="'$e'" 
-		 ORDER BY due;' |
-    awk -F "|" '{printf "%5i %3s %-10s %-20s\n",$1,$2,$3,$4" ("$5")"}'
-    echo 
-
-# List tasks for next 30 days
-elif [ $1 == "-lsd" ]    
-then
-    echo
-    echo "TODO NEXT 30 days ("$d" - "$we3")"
-    echo
-    printf "%5s %5s %3s %-10s %-20s\n" "id" "week" "day" "due" "task" 
-    printf "%5s %5s %3s %-10s %-20s\n" "--" "----" "---" "---" "----" 
-    sqlite3 $db 'SELECT id,(strftime("%j", date(due,"-3 days","weekday 4"))-1)/7+1,substr("SunMonTueWedThuFriSat",1+3*strftime("%w",due),3),due,task,name 
-                 FROM tasks 
-		 WHERE done=0 AND due<="'$we3'" 
-		 ORDER BY due;' |
-    awk -F "|" '{printf "%5i %5s %3s %-10s %-20s\n",$1,$2,$3,$4,$5" ("$6")"}'
-    echo 
-
-# List tasks for this weekend
-elif [ $1 == "-lse" ]   
-then
-    echo
-    echo "TODO THIS WEEKEND ("$we1" - "$we2")"
-    echo
-    printf "%5s %3s %-10s %-20s\n" "id" "day" "due" "task" 
-    printf "%5s %3s %-10s %-20s\n" "--" "---" "---" "----" 
-    sqlite3 $db 'SELECT id,substr("SunMonTueWedThuFriSat",1+3*strftime("%w",due),3),due,task,name 
-                 FROM tasks 
-		 WHERE done=0 AND due>="'$we1'" AND due<="'$we2'" 
-		 ORDER BY due;' |
-    awk -F "|" '{printf "%5i %3s %-10s %-20s\n",$1,$2,$3,$4" ("$5")"}'
-    echo 
-
-# List tasks for today
-elif [ $1 == "-lst" ] 
-then
-    echo
-    echo "TODO TODAY ("$d")"
-    echo
-    printf "%5s %3s %-10s %-20s %-10s\n" "id" "day" "due" "task"  
-    printf "%5s %3s %-10s %-20s %-10s\n" "--" "---" "---" "----"
-    sqlite3 $db 'SELECT id,substr("SunMonTueWedThuFriSat",1+3*strftime("%w",due),3),due,task,name 
-                 FROM tasks 
-		 WHERE done=0 AND due<="'$d'" 
-		 ORDER BY due;' |
-    awk -F "|" '{printf "%5i %3s %-10s %-20s\n",$1,$2,$3,$4" ("$5")"}'
-    echo 
-
-# List tasks for tomorrow
-elif [ $1 == "-lsm" ]    
-then
-    echo
-    echo "TODO TOMORROW ("$m")"
-    echo
-    printf "%5s %3s %-10s %-20s\n" "id" "day" "due" "task" 
-    printf "%5s %3s %-10s %-20s\n" "--" "---" "---" "----" 
-    sqlite3 $db 'SELECT id,substr("SunMonTueWedThuFriSat",1+3*strftime("%w",due),3),due,task,name 
-                 FROM tasks 
-		 WHERE done=0 AND due<="'$m'" 
-		 ORDER BY due;' |
-    awk -F "|" '{printf "%5i %3s %-10s %-20s\n",$1,$2,$3,$4" ("$5")"}'
-    echo 
-
-# List future tasks
-elif [ $1 == "-lsf" ]    
-then
-    echo
-    echo "TODO IN THE FUTURE ("$d" - "$2")"
-    echo
-    printf "%5s %5s %3s %-10s %-20s\n" "id" "week" "day" "due" "task" 
-    printf "%5s %5s %3s %-10s %-20s\n" "--" "----" "---" "---" "----" 
-    if [ -z "$2" ] 
+    if [ -n "$3" ]
     then
-        sqlite3 $db 'SELECT id,(strftime("%j", date(due,"-3 days","weekday 4"))-1)/7+1,substr("SunMonTueWedThuFriSat",1+3*strftime("%w",due),3),due,task,name 
-	             FROM tasks WHERE done=0 
-		     ORDER BY due;' |
-        awk -F "|" '{printf "%5i %5s %3s %-10s %-20s\n",$1,$2,$3,$4,$5" ("$6")"}'
+        startdate=$(date --date=$2 +"%Y-%m-%d")
+        enddate=$(date --date=$3 +"%Y-%m-%d")    
+    elif [ -z "$2" ]
+    then
+        startdate=$(date +"%Y-%m-%d")
+        enddate="2099-12-31"    
     else
-	sqlite3 $db 'SELECT id,(strftime("%j", date(due,"-3 days","weekday 4"))-1)/7+1,substr("SunMonTueWedThuFriSat",1+3*strftime("%w",due),3),due,task,name 
-	             FROM tasks 
-		     WHERE done=0 AND due <="'$2'" 
-		     ORDER BY due;' |
-        awk -F "|" '{printf "%5i %5s %3s %-10s %-20s\n",$1,$2,$3,$4,$5" ("$6")"}'
+        startdate=$(date +"%Y-%m-%d")
+        enddate=$(date --date=$2 +"%Y-%m-%d")
     fi
-    echo 
+    echo
+    echo "TODO BETWEEN "$startdate" AND "$enddate
+    done=0
+    all_tasks $done $startdate $enddate
 
-# List tasks for project
-elif [ $1 == "-lsp" ] && [ -n "$2" ]   
+# List due tasks for project between dates
+elif [ $1 == "-lsp" ] 
 then
-    echo
-    echo "TODO IN "$2
-    echo 
-    printf "%5s %3s %-10s %-20s\n" "id" "day" "due" "task" 
-    printf "%5s %3s %-10s %-20s\n" "--" "---" "---" "----" 
-    sqlite3 $db 'SELECT id,substr("SunMonTueWedThuFriSat",1+3*strftime("%w",due),3),due,task,name 
-                 FROM tasks 
-   	         WHERE done=0 AND project="'$2'" 
-		 ORDER BY due;' |
-    awk -F "|" '{printf "%5i %3s %-10s %-20s\n",$1,$2,$3,$4" ("$5")"}'
-    echo 
-
-# List tasks for context
-elif [ $1 == "-lsc" ] && [ -n "$2" ]   
-then
-    echo
-    echo "TODO IN "$2
-    echo 
-    printf "%5s %3s %-10s %-20s\n" "id" "day" "due" "task" 
-    printf "%5s %3s %-10s %-20s\n" "--" "---" "---" "----" 
-    sqlite3 $db 'SELECT id,substr("SunMonTueWedThuFriSat",1+3*strftime("%w",due),3),due,task,name 
-                 FROM tasks 
-   	         WHERE done=0 AND context="'$2'" 
-		 ORDER BY due;' |
-    awk -F "|" '{printf "%5i %3s %-10s %-20s\n",$1,$2,$3,$4" ("$5")"}'
-    echo 
-
-# Register task completed
-elif [ $1 == "-cmp" ] && [ -n "$2" ]
-then
-    sqlite3 $db 'UPDATE tasks 
-                 SET done=1, compdate="'$d'"
-		 WHERE id='$2';'
-
-# List archived tasks
-elif [ $1 == "-lsa" ]
-then
-    echo
-    echo "ARCHIVED TASKS ("$d")"
-    echo
-    printf "%5s %3s %-10s %-20s\n" "id" "day" "due" "task" 
-    printf "%5s %3s %-10s %-20s\n" "--" "---" "---" "----"  
-    sqlite3 $db 'SELECT id,substr("SunMonTueWedThuFriSat",1+3*strftime("%w",due),3),due,task,name 
-                 FROM tasks 
-                 WHERE done=1 
-	         ORDER BY due;' |
-    awk -F "|" '{printf "%5i %3s %-10s %-20s\n",$1,$2,$3,$4" ("$5")"}'
-    echo
-
-# List archived tasks in project
-elif [ $1 == "-lsap" ]
-then
-    echo
-    echo "ARCHIVED TASKS ("$d")"
-    echo
-    printf "%5s %3s %-10s %-20s\n" "id" "day" "due" "task" 
-    printf "%5s %3s %-10s %-20s\n" "--" "---" "---" "----"  
-    sqlite3 $db 'SELECT id,substr("SunMonTueWedThuFriSat",1+3*strftime("%w",due),3),due,task,name 
-                 FROM tasks 
-	         WHERE done=1 AND project="'$2'" 
-		 ORDER by due;' |
-    awk -F "|" '{printf "%5i %3s %-10s %-20s\n",$1,$2,$3,$4" ("$5")"}'
-    echo
-
-# List archived tasks in context
-elif [ $1 == "-lsac" ]
-then
-    echo
-    echo "ARCHIVED TASKS ("$d")"
-    echo
-    printf "%5s %3s %-10s %-20s\n" "id" "day" "due" "task" 
-    printf "%5s %3s %-10s %-20s\n" "--" "---" "---" "----"  
-    sqlite3 $db 'SELECT id,substr("SunMonTueWedThuFriSat",1+3*strftime("%w",due),3),due,task,name 
-                 FROM tasks 
-	         WHERE done=1 AND context="'$2'" 
-		 ORDER by due;' |
-    awk -F "|" '{printf "%5i %3s %-10s %-20s\n",$1,$2,$3,$4" ("$5")"}'
-    echo
-
-# Register new task
-elif [ $1 == "-new" ]
-then
-    if [ -z "$5" ]
+    project=$2
+    if [ -n "$4" ]
     then
-        echo
-        echo -n "Task: "
-        read task
-        echo -n "Due date: "
-        read due
-        echo -n "Project: "
-        read project
-        echo -n "Context: "
-        read context
-        echo -n "Enclose file: "
-        read enclosed
+        startdate=$(date --date=$3 +"%Y-%m-%d")
+        enddate=$(date --date=$4 +"%Y-%m-%d")    
+    elif [ -z "$3" ]
+    then
+        startdate=$(date +"%Y-%m-%d")
+        enddate="2099-12-31"    
     else
-        task=$2
-	due=$3
-	project=$4
-	context=$5
-	enclosed=$6
+        startdate=$(date +"%Y-%m-%d")
+        enddate=$(date --date=$4 +"%Y-%m-%d")
     fi
-    if [ -n "$6" ] || [ -n "$enclosed" ]
-    then
-        name=$(basename $enclosed)
-    fi
-    sqlite3 $db 'INSERT INTO tasks (task,due,project,context,done,enclosed,name,regdate) 
-                 VALUES ("'$task'","'$due'","'$project'","'$context'",0,readfile("'$enclosed'"),"'$name'","'$d'");'
     echo
+    echo "TODO IN "$project" BETWEEN "$startdate" AND "$enddate
+    echo
+    done=0
+    project_tasks $done $project $startdate $enddate
+
+# List due tasks for context between dates
+elif [ $1 == "-lsc" ] 
+then
+    context=$2
+    if [ -n "$4" ]
+    then
+        startdate=$(date --date=$3 +"%Y-%m-%d")
+        enddate=$(date --date=$4 +"%Y-%m-%d")    
+    elif [ -z "$3" ]
+    then
+        startdate=$(date +"%Y-%m-%d")
+        enddate="2099-12-31"    
+    else
+        startdate=$(date +"%Y-%m-%d")
+        enddate=$(date --date=$4 +"%Y-%m-%d")
+    fi
+    echo
+    echo "TODO IN "$context" BETWEEN "$startdate" AND "$enddate
+    echo
+    done=0
+    context_tasks $done $context $startdate $enddate
+
+# List archived tasks between dates
+elif [ $1 == "-lsad" ] 
+then
+    if [ -n "$3" ]
+    then
+        startdate=$(date --date=$2 +"%Y-%m-%d")
+        enddate=$(date --date=$3 +"%Y-%m-%d")    
+    elif [ -z "$2" ]
+    then
+        startdate=$(date +"%Y-%m-%d")
+        enddate="2099-12-31"    
+    else
+        startdate=$(date +"%Y-%m-%d")
+        enddate=$(date --date=$2 +"%Y-%m-%d")
+    fi
+    echo
+    echo "ARCHIVED BETWEEN "$startdate" AND "$enddate
+    done=1
+    all_tasks $done $startdate $enddate
+
+# List archived tasks for project between dates
+elif [ $1 == "-lsap" ] 
+then
+    project=$2
+    if [ -n "$4" ]
+    then
+        startdate=$(date --date=$3 +"%Y-%m-%d")
+        enddate=$(date --date=$4 +"%Y-%m-%d")    
+    elif [ -z "$3" ]
+    then
+        startdate=$(date +"%Y-%m-%d")
+        enddate="2099-12-31"    
+    else
+        startdate=$(date +"%Y-%m-%d")
+        enddate=$(date --date=$4 +"%Y-%m-%d")
+    fi
+    echo
+    echo "ARCHIVED IN "$project" BETWEEN "$startdate" AND "$enddate
+    echo
+    done=1
+    project_tasks $done $project $startdate $enddate
+
+# List archived tasks for context between dates
+elif [ $1 == "-lsac" ] 
+then
+    context=$2
+    if [ -n "$4" ]
+    then
+        startdate=$(date --date=$3 +"%Y-%m-%d")
+        enddate=$(date --date=$4 +"%Y-%m-%d")    
+    elif [ -z "$3" ]
+    then
+        startdate=$(date +"%Y-%m-%d")
+        enddate="2099-12-31"    
+    else
+        startdate=$(date +"%Y-%m-%d")
+        enddate=$(date --date=$4 +"%Y-%m-%d")
+    fi
+    echo
+    echo "ARCHIVED IN "$context" BETWEEN "$startdate" AND "$enddate
+    echo
+    done=1
+    context_tasks $done $context $startdate $enddate
 
 # List projects
 elif [ $1 == "-prj" ]
@@ -444,45 +393,32 @@ then
     awk -F "|" '{printf "%2s %-8s %-20s\n"," ",$1,$2}'
     echo
 
-# Structured 30 days, first one context 
-elif [ $1 == "-lsr" ]
+# Structured, first one context 
+elif [ $1 == "-lscc" ]
 then
+    enddate=$(date --date=sunday +"%Y-%m-%d")    
+    context=$2
     echo
-    echo "ALL '$2' TASKS DUE THE NEXT 14 DAYS"
+    echo "ALL '$2' TASKS DUE THIS WEEK"
     echo 
     printf "%5s %5s %3s %-10s %-20s\n" "id" "week" "day" "due" "task" 
     printf "%5s %5s %3s %-10s %-20s\n" "--" "----" "---" "---" "----" 
     sqlite3 $db 'SELECT id,(strftime("%j", date(due,"-3 days","weekday 4"))-1)/7+1,substr("SunMonTueWedThuFriSat",1+3*strftime("%w",due),3),due,task,name
                  FROM tasks 
-   	         WHERE done=0 AND context="'$2'" AND due <="'$d14'" 
+   	         WHERE done=0 AND context=="'$context'"  AND due <="'$enddate'" 
 		 ORDER BY due;' |
     awk -F "|" '{printf "%5i %5s %3s %-10s %-20s\n",$1,$2,$3,$4,$5" ("$6")"}'
-
-# then all other contexts, 30 days
+# then all other task this week
     echo
-    echo "ALL TASKS BUT '$2' DUE THE NEXT 14 DAYS"
+    echo "ALL TASKS BUT '$2' DUE THIS WEEK"
     echo 
     printf "%5s %5s %3s %-10s %-20s\n" "id" "week" "day" "due" "task" 
     printf "%5s %5s %3s %-10s %-20s\n" "--" "----" "---" "---" "----" 
     sqlite3 $db 'SELECT id,(strftime("%j", date(due,"-3 days","weekday 4"))-1)/7+1,substr("SunMonTueWedThuFriSat",1+3*strftime("%w",due),3),due,task,name
                  FROM tasks 
-   	         WHERE done=0 AND context!="'$2'"  AND due <="'$d14'" 
+   	         WHERE done=0 AND context!="'$context'"  AND due <="'$enddate'" 
 		 ORDER BY due;' |
     awk -F "|" '{printf "%5i %5s %3s %-10s %-20s\n",$1,$2,$3,$4,$5" ("$6")"}'
-
-# then all other tasks
-    echo
-    echo "ALL LATER DUE TASKS"
-    echo 
-    printf "%5s %5s %3s %-10s %-20s\n" "id" "week" "day" "due" "task" 
-    printf "%5s %5s %3s %-10s %-20s\n" "--" "----" "---" "---" "----" 
-    sqlite3 $db 'SELECT id,(strftime("%j", date(due,"-3 days","weekday 4"))-1)/7+1,substr("SunMonTueWedThuFriSat",1+3*strftime("%w",due),3),due,task,name
-                 FROM tasks 
-   	         WHERE done=0 AND due > "'$d14'" 
-		 ORDER BY due;' |
-    awk -F "|" '{printf "%5i %5s %3s %-10s %-20s\n",$1,$2,$3,$4,$5" ("$6")"}'
-    echo 
-    echo
 
 ############
 # Finished #
