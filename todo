@@ -105,33 +105,32 @@ fi
 if [ $1 == "--help" ] || [ $1 == "-h" ]  
 then
     echo
-    echo "Usage: todo parameters [if optional]"
+    echo "Usage: todo parameters [optional]"
     echo
     echo "where the parameters are:"
     echo
-    echo " -new [task due project context  (on one line)"
-    echo "       filename]                 register new task"
-    echo 
-    echo " -mod id item value              modify task" 
-    echo " -enc id filename                download enclosed file"
-    echo " -cmp id                         register completed task"
-    echo " -del id                         delete task"
-    echo " -fnd criterion                  find task(s)"
-    echo " -rem id time                    remind task (at command)"
+    echo " -new [task due project context file]  register new task"
+    echo " -mod id item value                    modify task" 
+    echo " -enc id filename                      download enclosed file"
+    echo " -cmp id                               register completed task"
+    echo " -del id                               delete task"
+    echo " -fnd criterion                        find task(s)"
+    echo " -rem id time                          remind task (using at command)"
     echo
-    echo " -lsq                            list all queued tasks"
-    echo " -lsd [date1] [date2]            list due tasks between date 1 and 2"
-    echo " -lsp project [date1] [date2]    list due tasks in project between date 1 and 2"
-    echo " -lsc context [date1] [date2]    list due tasks in context between date 1 and 2"
+    echo " -lsq                                  list all queued tasks"
+    echo " -lsd [date1] [date2]                  list due tasks from to"
+    echo " -lsp project [date1] [date2]          list due tasks in project from to"
+    echo " -lsc context [date1] [date2]          list due tasks in context from to"
     echo
-    echo " -prj                            project summary"
-    echo " -ctx                            context summary"
-    echo " -lssc context                   list the week's tasks in and out of a context"
-    echo " -lssp project                   list the week's tasks in and out of a project"
+    echo " -lssc context                         list the week's tasks vis-à-vis context"
+    echo " -lssp project                         list the week's tasks vis-à-vis project"
     echo
-    echo " -lsad [date1] [date2]           list done tasks between date 1 and 2"
-    echo " -lsap project [date1] [date2]   list done tasks in project between date 1 and 2"
-    echo " -lsac context [date1] [date2]   list done tasks in context between date 1 and 2"
+    echo " -lsad [date1] [date2]                 list tasks done from to"
+    echo " -lsap project [date1] [date2]         list tasks done in project from to"
+    echo " -lsac context [date1] [date2]         list tasks done in context from to"
+    echo
+    echo " -cpr                                  contexts and projects summary"
+    echo " -prc                                  projects and contexts summary"
     echo
 
 ####################################
@@ -363,36 +362,6 @@ then
     done=1
     context_tasks $done $context $startdate $enddate
 
-# List projects
-elif [ $1 == "-prj" ]
-then
-    echo
-    echo "PROJECT ("$d")"
-    echo
-    printf "%2s %-8s %-20s\n" " " "records" "project" 
-    printf "%2s %-8s %-20s\n" " " "-------" "-------" 
-    sqlite3 $db 'SELECT COUNT(task) AS records, project 
-                 FROM tasks 
-                 GROUP BY project
-                 ORDER BY project;' |
-    awk -F "|" '{printf "%2s %-8s %-20s\n"," ",$1,$2}'
-    echo
-
-# List contexts
-elif [ $1 == "-ctx" ]
-then
-    echo
-    echo "CONTEXT ("$d")"
-    echo
-    printf "%2s %-8s %-20s\n" " " "records" "context" 
-    printf "%2s %-8s %-20s\n" " " "-------" "-------" 
-    sqlite3 $db 'SELECT COUNT(task) as records, context
-                 FROM tasks
-		 GROUP BY context
-		 ORDER BY context;' |
-    awk -F "|" '{printf "%2s %-8s %-20s\n"," ",$1,$2}'
-    echo
-
 # Structured, first one context 
 elif [ $1 == "-lssc" ]
 then
@@ -448,6 +417,37 @@ then
 		 ORDER BY due;' |
     awk -F "|" '{printf "%5i %5s %3s %-10s %-20s\n",$1,$2,$3,$4,$5" ("$6")"}'
     echo
+
+# List contexts and projects
+elif [ $1 == "-cpr" ]
+then
+    echo
+    echo "CONTEXTS AND PROJECTS"
+    echo
+    printf "%2s %-8s %-8s %-12s\n" " " "records" "context" "project" 
+    printf "%2s %-8s %-8s %-12s\n" " " "-------" "-------" "-------" 
+    sqlite3 $db 'SELECT COUNT(task) AS records, context, project 
+                 FROM tasks 
+                 GROUP BY context, project
+                 ORDER BY context, project;' |
+    awk -F "|" '{printf "%8s %2s %-8s %-12s\n",$1," ",$2,$3}'
+    echo
+
+# List projects and contexts
+elif [ $1 == "-prc" ]
+then
+    echo
+    echo "PROJECTS AND CONTEXTS"
+    echo
+    printf "%2s %-8s %-12s %-8s\n" " " "records" "project" "context" 
+    printf "%2s %-8s %-12s %-8s\n" " " "-------" "-------" "-------" 
+    sqlite3 $db 'SELECT COUNT(task) AS records, project, context 
+                 FROM tasks 
+                 GROUP BY project, context
+                 ORDER BY project, context;' |
+    awk -F "|" '{printf "%8s %2s %-12s %-8s\n",$1," ",$2,$3}'
+    echo
+
 
 ############
 # Finished #
