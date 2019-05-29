@@ -109,28 +109,29 @@ then
     echo
     echo "where the parameters are:"
     echo
-    echo " -new [task due project context file]  register new task"
-    echo " -mod id item value                    modify task" 
-    echo " -enc id filename                      download enclosed file"
-    echo " -cmp id                               register completed task"
+    echo " -new [task due project context file]  register a new task"
     echo " -del id                               delete task"
-    echo " -fnd criterion                        find task(s)"
-    echo " -rem id time                          remind task (using at command)"
+    echo " -mod id item value                    modify task" 
+    echo " -cmp id                               register task done"
     echo
-    echo " -lsq                                  list all queued tasks"
+    echo " -fnd word                             find tasks like word"
+    echo " -rem id time                          remind task (using at command)"
+    echo " -enc id filename                      download task's enclosed file"
+    echo
+    echo " -lsq                                  list queued (no due date) tasks"
     echo " -lsd [date1] [date2]                  list due tasks from to"
     echo " -lsp project [date1] [date2]          list due tasks in project from to"
     echo " -lsc context [date1] [date2]          list due tasks in context from to"
     echo
-    echo " -lssc context                         list the week's tasks vis-à-vis context"
-    echo " -lssp project                         list the week's tasks vis-à-vis project"
+    echo " -lsad [date1] [date2]                 list done tasks from to"
+    echo " -lsap project [date1] [date2]         list done tasks in project from to"
+    echo " -lsac context [date1] [date2]         list done tasks in context from to"
     echo
-    echo " -lsad [date1] [date2]                 list tasks done from to"
-    echo " -lsap project [date1] [date2]         list tasks done in project from to"
-    echo " -lsac context [date1] [date2]         list tasks done in context from to"
-    echo
-    echo " -cpr                                  contexts and projects summary"
-    echo " -prc                                  projects and contexts summary"
+    echo " -lssp project                         list the week's due tasks wrt project"
+    echo " -lssc context                         list the week's due tasks wrt context"
+    echo 
+    echo " -cpr                                  show contexts and projects summary"
+    echo " -prc                                  show projects and contexts summary"
     echo
 
 ####################################
@@ -447,7 +448,6 @@ then
                  ORDER BY project, context;' |
     awk -F "|" '{printf "%8s %2s %-12s %-8s\n",$1," ",$2,$3}'
     echo
-
 
 ############
 # Finished #
