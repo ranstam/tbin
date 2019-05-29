@@ -98,6 +98,8 @@ then
     set -- $cmd $par
 fi
 
+d=$(date +"%Y-%m-%d")
+
 #############
 # Show help #
 #############
@@ -226,7 +228,7 @@ then
 elif [ $1 == "-lsq" ]    
 then
     echo
-    echo "QUEUED TASKS ("$d")"
+    echo "QUEUED TASKS"
     echo
     printf "%5s %-20s %7s %7s\n" "id" "task" "project" "context" 
     printf "%5s %-20s %7s %7s\n" "--" "----" "-------" "-------" 
