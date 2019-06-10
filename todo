@@ -134,6 +134,8 @@ then
     echo 
     echo " -cpr                                  show contexts and projects summary"
     echo " -prc                                  show projects and contexts summary"
+    echo " -tdp                                  task duration in project"
+    echo " -tdc                                  task duration in context"
     echo
 
 ####################################
@@ -371,7 +373,7 @@ then
     enddate=$(date --date=sunday +"%Y-%m-%d")    
     context=$2
     echo
-    echo "ALL TASKS IN '$2' DUE THIS WEEK"
+    echo "ALL '$2' TASKS DUE THIS WEEK"
     echo 
     printf "%5s %5s %3s %-10s %-20s\n" "id" "week" "day" "due" "task" 
     printf "%5s %5s %3s %-10s %-20s\n" "--" "----" "---" "---" "----" 
@@ -382,7 +384,7 @@ then
     awk -F "|" '{printf "%5i %5s %3s %-10s %-20s\n",$1,$2,$3,$4,$5" "$6}'
 # then all other task this week
     echo
-    echo "ALL TASKS NOT IN '$2' BUT DUE THIS WEEK"
+    echo "ALL TASKS NOT '$2' DUE THIS WEEK"
     echo 
     printf "%5s %5s %3s %-10s %-20s\n" "id" "week" "day" "due" "task" 
     printf "%5s %5s %3s %-10s %-20s\n" "--" "----" "---" "---" "----" 
@@ -399,7 +401,7 @@ then
     enddate=$(date --date=sunday +"%Y-%m-%d")    
     project=$2
     echo
-    echo "ALL TASKS IN '$2' DUE THIS WEEK"
+    echo "ALL '$2' TASKS DUE THIS WEEK"
     echo 
     printf "%5s %5s %3s %-10s %-20s\n" "id" "week" "day" "due" "task" 
     printf "%5s %5s %3s %-10s %-20s\n" "--" "----" "---" "---" "----" 
@@ -410,7 +412,7 @@ then
     awk -F "|" '{printf "%5i %5s %3s %-10s %-20s\n",$1,$2,$3,$4,$5" "$6}'
 # then all other task this week
     echo
-    echo "ALL TASKS NOT IN '$2' BUT DUE THIS WEEK"
+    echo "ALL TASKS NOT '$2' DUE THIS WEEK"
     echo 
     printf "%5s %5s %3s %-10s %-20s\n" "id" "week" "day" "due" "task" 
     printf "%5s %5s %3s %-10s %-20s\n" "--" "----" "---" "---" "----" 
@@ -450,6 +452,37 @@ then
                  ORDER BY project, context;' |
     awk -F "|" '{printf "%8s %2s %-12s %-8s\n",$1," ",$2,$3}'
     echo
+
+# Tasks duration for context
+elif [ $1 == "-tdc" ]
+then
+    echo
+    echo "TASK DURATION '"$2"'"
+    echo
+    printf "%8s %2s %-20s\n" "days" " " "task"  
+    printf "%8s %2s %-20s\n" "----" " " "----" 
+    sqlite3 $db "SELECT task, cast(((strftime('%s',\"compdate\") - strftime('%s',\"regdate\"))/86400) AS int) AS lag
+                 FROM tasks
+                 WHERE done=1 AND context='"$2"' AND lag>0
+                 ORDER BY lag DESC;" |
+    awk -F "|" '{printf "%8i %2s %-20s\n",$2," ",$1}'
+    echo
+
+# Tasks duration for project
+elif [ $1 == "-tdp" ]
+then
+    echo
+    echo "TASK DURATION '"$2"'"
+    echo
+    printf "%8s %2s %-20s\n" "days" " " "task"  
+    printf "%8s %2s %-20s\n" "----" " " "----" 
+    sqlite3 $db "SELECT task, cast(((strftime('%s',\"compdate\") - strftime('%s',\"regdate\"))/86400) AS int) AS lag
+                 FROM tasks
+                 WHERE done=1 AND project='"$2"' AND lag>0
+                 ORDER BY lag DESC;" |
+    awk -F "|" '{printf "%8i %2s %-20s\n",$2," ",$1}'
+    echo
+
 
 ############
 # Finished #
