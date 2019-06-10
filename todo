@@ -49,7 +49,7 @@ all_tasks () {
                  FROM tasks 
    	         WHERE done="'$done'" AND due>="'$startdate'"  AND due <="'$enddate'" 
 		 ORDER BY due;' |
-    awk -F "|" '{printf "%5i %5s %3s %-10s %-20s\n",$1,$2,$3,$4,$5" ("$6")"}'
+    awk -F "|" '{printf "%5i %5s %3s %-10s %-20s\n",$1,$2,$3,$4,$5" "$6}'
     echo
 }
 
@@ -61,7 +61,7 @@ project_tasks () {
                  FROM tasks 
    	         WHERE done="'$done'" AND project="'$project'" AND due>="'$startdate'"  AND due <="'$enddate'" 
 		 ORDER BY due;' |
-    awk -F "|" '{printf "%5i %5s %3s %-10s %-20s\n",$1,$2,$3,$4,$5" ("$6")"}'
+    awk -F "|" '{printf "%5i %5s %3s %-10s %-20s\n",$1,$2,$3,$4,$5" "$6}'
     echo
 }
 
@@ -73,7 +73,7 @@ context_tasks () {
                  FROM tasks 
    	         WHERE done="'$done'" AND context="'$context'" AND due>="'$startdate'"  AND due <="'$enddate'" 
 		 ORDER BY due;' |
-    awk -F "|" '{printf "%5i %5s %3s %-10s %-20s\n",$1,$2,$3,$4,$5" ("$6")"}'
+    awk -F "|" '{printf "%5i %5s %3s %-10s %-20s\n",$1,$2,$3,$4,$5" "$6}'
     echo
 }
 
@@ -85,7 +85,7 @@ found_tasks () {
                  FROM tasks
           	 WHERE task LIKE "'%$find%'"
 		 ORDER BY due;' |
-    awk -F "|" '{printf "%5s %5i %5s %3s %-10s %-20s\n",$1,$2,$3,$4,$5,$6" ("$7")"}'
+    awk -F "|" '{printf "%5s %5i %5s %3s %-10s %-20s\n",$1,$2,$3,$4,$5,$6" "$7}'
     echo
 }
 
@@ -379,7 +379,7 @@ then
                  FROM tasks 
    	         WHERE done=0 AND context=="'$context'" AND due <="'$enddate'" 
 		 ORDER BY due;' |
-    awk -F "|" '{printf "%5i %5s %3s %-10s %-20s\n",$1,$2,$3,$4,$5" ("$6")"}'
+    awk -F "|" '{printf "%5i %5s %3s %-10s %-20s\n",$1,$2,$3,$4,$5" "$6}'
 # then all other task this week
     echo
     echo "ALL TASKS NOT IN '$2' BUT DUE THIS WEEK"
@@ -390,7 +390,7 @@ then
                  FROM tasks 
    	         WHERE done=0 AND context!="'$context'" AND due <="'$enddate'" 
 		 ORDER BY due;' |
-    awk -F "|" '{printf "%5i %5s %3s %-10s %-20s\n",$1,$2,$3,$4,$5" ("$6")"}'
+    awk -F "|" '{printf "%5i %5s %3s %-10s %-20s\n",$1,$2,$3,$4,$5" "$6}'
     echo
 
 # Structured, first one project 
@@ -407,7 +407,7 @@ then
                  FROM tasks 
    	         WHERE done=0 AND project=="'$project'" AND due <="'$enddate'" 
 		 ORDER BY due;' |
-    awk -F "|" '{printf "%5i %5s %3s %-10s %-20s\n",$1,$2,$3,$4,$5" ("$6")"}'
+    awk -F "|" '{printf "%5i %5s %3s %-10s %-20s\n",$1,$2,$3,$4,$5" "$6}'
 # then all other task this week
     echo
     echo "ALL TASKS NOT IN '$2' BUT DUE THIS WEEK"
@@ -418,7 +418,7 @@ then
                  FROM tasks 
    	         WHERE done=0 AND project!="'$project'" AND due <="'$enddate'" 
 		 ORDER BY due;' |
-    awk -F "|" '{printf "%5i %5s %3s %-10s %-20s\n",$1,$2,$3,$4,$5" ("$6")"}'
+    awk -F "|" '{printf "%5i %5s %3s %-10s %-20s\n",$1,$2,$3,$4,$5" "$6}'
     echo
 
 # List contexts and projects
