@@ -21,17 +21,17 @@ par=" "                                                       #
 #####################################################
 
 if [ ! -e "$db" ]; then
-    sqlite3 $db 'CREATE TABLE tasks (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, 
-                                     task VARCHAR (40) NOT NULL, 
-                                     due DATE NOT NULL, 
-                                     regdate DATE,            
-                                     compdate DATE, 
-                                     showdate DATE DEFAULT (2000-01 01),
-                                     project VARCHAR (20) NOT NULL, 
-                                     context VARCHAR (20) NOT NULL, 
-                                     done INTEGER DEFAULT (0) NOT NULL, 
-                                     enclosed BLOB, 
-                                     name VARCHAR (20));'
+   sqlite3 $db 'CREATE TABLE tasks (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, 
+                                    task VARCHAR (40) NOT NULL, 
+                                    due DATE NOT NULL, 
+                                    project VARCHAR (20) NOT NULL, 
+                                    context VARCHAR (20) NOT NULL, 
+                                    done INTEGER DEFAULT (0) NOT NULL, 
+                                    enclosed BLOB DEFAULT NULL, 
+                                    name VARCHAR (20) DEFAULT NULL, 
+                                    regdate DATE, 
+                                    compdate DATE, 
+                                    showdate DATE DEFAULT (2000-01-01));'
 fi 
 
 #############
@@ -101,26 +101,34 @@ d=$(date +"%Y-%m-%d")
 # Show status #
 ###############
 
-if [ $1 != "-new" ] && [ $1 != "-del" ] && [ $1 != "-mod" ] && [ $1 != "-cmp" ]
+if [ $1 != "-new" ] && [ $1 != "-del" ] && [ $1 != "-mod" ] && [ $1 != "-cmp" ] && [ $1 != "-rem" ] && [ $1 != "-enc" ]
 then  
-    v1=$(sqlite3 $db 'SELECT COUNT(DISTINCT project) FROM tasks;')
-    v2=$(sqlite3 $db 'SELECT COUNT(DISTINCT context) FROM tasks;')
-    v3=$(sqlite3 $db 'SELECT COUNT(id) FROM tasks;')
-    v4=$(sqlite3 $db 'SELECT COUNT(id) FROM tasks WHERE done=1;')
-    v5=$(sqlite3 $db 'SELECT COUNT(id) FROM tasks WHERE showdate>'$d' AND done=0;')
-    v6=$(sqlite3 $db 'SELECT COUNT(id) FROM tasks WHERE showdate<="'$d'" AND done=0;')
-    v7=$(sqlite3 $db 'SELECT COUNT(id) FROM tasks WHERE due="";')
+    v0=$(sqlite3 $db 'SELECT MAX(regdate) FROM tasks;')
+    v1=$(sqlite3 $db 'SELECT MAX(compdate) FROM tasks;')
+    v2=$(sqlite3 $db 'SELECT COUNT(DISTINCT project) FROM tasks;')
+    v3=$(sqlite3 $db 'SELECT COUNT(DISTINCT context) FROM tasks;')
+    v4=$(sqlite3 $db 'SELECT COUNT(enclosed) FROM tasks;')
+    v5=$(sqlite3 $db 'SELECT COUNT(id) FROM tasks;')
+    v6=$(sqlite3 $db 'SELECT COUNT(id) FROM tasks WHERE done=1;')
+    v7=$(sqlite3 $db 'SELECT COUNT(id) FROM tasks WHERE showdate>'$d' AND done=0;')
+    v8=$(sqlite3 $db 'SELECT COUNT(id) FROM tasks WHERE due="";')
+    v9=$(sqlite3 $db 'SELECT COUNT(id) FROM tasks WHERE showdate<="'$d'" AND done=0;')
 
     echo
-    echo " TASK STATUS"
-    echo " -----------"
-    echo " Projects ...........: "$v1
-    echo " Contexts ...........: "$v2
-    echo " Registered tasks ...: "$v3
-    echo " Completed tasks ....: "$v4
-    echo " Hidden tasks .......: "$v5
-    echo " Ongoing tasks ......: "$v6
-    echo " Queued tasks .......: "$v7
+    echo " TASK SYSTEM STATUS"
+    echo " ------------------"
+    echo
+    echo " Last registered task .: "$v0
+    echo " Last completed task ..: "$v1
+    echo " Projects .............: "$v2
+    echo " Contexts .............: "$v3
+    echo " Files enclosed .......: "$v4
+    echo " Registered tasks .....: "$v5
+    echo " Completed tasks ......: "$v6
+    echo " Preregistered tasks ..: "$v7
+    echo " Queued tasks .........: "$v8
+    echo " Due tasks ............: "$v9
+
 fi
 
 #############
@@ -151,7 +159,9 @@ then
     echo "    -rem id time                  remind task (using at command)"
     echo "    -enc id filename              download task's enclosed file"
     echo
-    echo "    -lsq                          list queued (no due date) tasks"
+    echo "    -lsq                          list queued tasks"
+    echo "    -lsh                          list preregistered tasks"
+    echo
     echo "    -lsd [date1] [date2]          list due tasks from to"
     echo "    -lsp project [date1] [date2]  list due tasks in project from to"
     echo "    -lsc context [date1] [date2]  list due tasks in context from to"
@@ -267,7 +277,7 @@ then
     echo " QUEUED TASKS"
     echo
     printf "%5s %-20s %7s %7s\n" "id" "task" "project" "context" 
-    printf "%5s %-20s %7s %7s\n" "--" "----" "-------" "-------" 
+    printf "%5s %-20s %7s %7s\n" "--" "----" "-------" "-----kolumnister--" 
     sqlite3 $db 'SELECT id,task,project,context 
                  FROM tasks 
 		 WHERE due="" 
@@ -279,15 +289,15 @@ then
 elif [ $1 == "-lsh" ]    
 then
     echo
-    echo " HIDDEN TASKS"
+    echo " PREREGISTERED TASKS"
     echo
-    printf "%5s %-22s %-10s\n" "id" "task" "due"  
-    printf "%5s %-22s %-10s\n" "--" "----" "---"  
-    sqlite3 $db 'SELECT id,task,due 
+    printf "%5s %-20s %2s %-10s %2s %-10s\n" "id" "task" "  " "show" "  " "due"  
+    printf "%5s %-20s %2s %-10s %2s %-10s\n" "--" "----" "  " "----" "  " "---"  
+    sqlite3 $db 'SELECT id,task,showdate,due 
                  FROM tasks 
                  WHERE done=0 AND due>="'$d'" AND showdate>"'$d'" 
                  ORDER BY due;' |
-    awk -F "|" '{printf "%5i %-22s %-10s\n",$1,$2,$3}'
+    awk -F "|" '{printf "%5i %-20s %2s %-10s %2s %-10s\n",$1,$2,"  ",$3,"  ",$4}'
     echo 
 
 # List due tasks between dates
